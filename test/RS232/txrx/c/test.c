@@ -61,12 +61,12 @@ int main(void) {
 
         tcsetattr(fd, TCSANOW, &tty_attributes);
 
-	printf("Stampo 'A'\n\r");
+	printf("Print 'A' on RS232\n\r");
         txBuffer[0]='A';
         write(fd,txBuffer,1);
 
         // Read a char
-	printf("Inizio echo su terminale\n\r");
+	printf("Start echo from RS232 rx pin to terminal\n\r");
         for(;;){
 		if (read(fd,&rxBuffer,1)==1) {
 	            	printf("%c",rxBuffer[0]);
