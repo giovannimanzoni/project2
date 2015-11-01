@@ -1,5 +1,5 @@
-#include "stdio.h"     
-#include "string.h"    
+#include "stdio.h"
+#include "string.h"
 #include "unistd.h"
 #include "fcntl.h"
 #include "errno.h"
@@ -61,9 +61,23 @@ int main(void) {
 
         tcsetattr(fd, TCSANOW, &tty_attributes);
 
-	printf("Print 'A' on RS232\n\r");
+
+
+
+	printf("\n\n\rPrint on RS232\n\n\r");
         txBuffer[0]='A';
-        write(fd,txBuffer,1);
+        txBuffer[1]='B';
+        txBuffer[2]='C';
+        txBuffer[3]='\n';
+        write(fd,txBuffer,4);
+
+
+	usleep(200000);
+	if (tcflush(fd, TCIOFLUSH) == 0)
+           printf("The input and output queues have been flushed.\n\n\r");
+        else
+           perror("tcflush error");
+
 
         // Read a char
 	printf("Start echo from RS232 rx pin to terminal\n\r");
