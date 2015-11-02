@@ -65,7 +65,7 @@ int main(void) {
         tcsetattr(fd, TCSANOW, &tty_attributes);
 
 
-	printf("\n\n\rPrint on RS232 with hardware flow control (CTS & RTS pin)\n\n\r");
+	printf("\n\n\rPrint on RS232 with hardware flow control ( CTS & RTS pin )\n\n\r");
         txBuffer[0]='A';
         txBuffer[1]='B';
         txBuffer[2]='C';
