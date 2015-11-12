@@ -1,0 +1,275 @@
+/*
+ * at91-aria.dts - Device Tree file for Acme Systems Aria G25
+ *
+ * Copyright (C) 2015 Sergio Tanzilli <sergio@tanzilli.com>
+ * Copyright (C) 2013 Douglas Gilbert <dgilbert@interlog.com>,
+ *                    Robert Nelson <robertcnelson@gmail.com>
+ *
+ * Licensed under GPLv2 or later. 
+ */
+/dts-v1/;
+#include "at91sam9g25.dtsi"
+
+/ {
+	model = "Acme Systems Aria G25";
+	compatible = "acme,ariag25", "atmel,at91sam9x5ek",
+				"atmel,at91sam9x5", "atmel,at91sam9";
+	interrupt-parent = <&aic>;
+
+	aliases {
+		serial0 = &dbgu;
+		serial1 = &usart0;
+		serial2 = &usart1;
+	};
+
+	chosen {
+		bootargs = "root=/dev/mmcblk0p2 rw rootwait";
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory {
+		/* 128 MB Aria G25 version */
+		reg = <0x20000000 0x8000000>;
+		/* 256 MB Aria G25 version */
+		/* reg = <0x20000000 0x10000000>; */
+	};
+
+
+	clocks {
+		slow_xtal: slow_xtal {
+			compatible = "atmel,osc", "fixed-clock";
+			clock-frequency = <32768>;
+		};
+		
+		main_xtal: main_xtal { 
+			compatible = "atmel,osc", "fixed-clock";
+			clock-frequency = <12000000>; 
+		}; 
+	};
+
+	ahb {
+		compatible = "simple-bus";
+                #address-cells = <1>;
+                #size-cells = <1>;
+                ranges;
+
+		apb {
+			compatible = "simple-bus";
+                        #address-cells = <1>;
+                        #size-cells = <1>;
+                        ranges;
+
+			// compatible ="atmel,xxx by kernel documentation";
+			// reg = <register dimension>; by memory mapping in datasheet
+			// interrupts = <x y z>; 
+			//    x: irq number, [0..31] Advanced Interrupt Controller (AIC) 
+			//    y: flags: Edge-triggered or Level-sensitive, ex. IRQ_TYPE_LEVEL_HIGH = [0..10], look at Linux/include/linux/irq.h
+			//    z: priority ? if yes -> [0..7], 7 = High, 0 = Low
+			// dmas <x y z>;
+			//    x: DMA Controller number, ex. &dma0, &dma1
+			//    y: always 1 ?? consisting of a phandle to DMA controller node, http://stackoverflow.com/questions/31095951/what-is-the-meaning-of-a-phandle-when-used-as-device-tree-node-name
+			//    z: DMA Channel Number [0..15] look at datasheet section 30.3 DMA Controller Peripheral Connections
+			// dma-names = "tx", "rx"; / "rxtx"; / "rx"; / "tx"; 
+			// atmel,fifo-size = <xx>;  see datasheet dma section
+			// pinctrl-names = "default"; or custom name, but where it will be put ?
+			// clocks = <&mci0_clk>; specific peripheral clk names, see linux kernel doc
+			// pinctrl-0 = < xxxxxx > for set specifics pins
+			// status = "okay"; for use/enable the peripheral
+
+			//note: I set max priority to user interaction: console & i2c panel
+
+			// 
+			// Peripheral Mapping
+			//
+			// note: for interrupt, Source range: 2..31
+
+			aic: interrupt-controller@fffff000 {
+                                #interrupt-cells = <3>; // 3 ! cell 1: irq num; cell 2:flag; cell 3: priority.
+                                compatible = "atmel,at91rm9200-aic";
+                                interrupt-controller;
+                          //    interrupt-parent;    // if enabled, it stop boot 
+                                reg = <0xfffff000 0x200>;
+				status = "okay";  // ? is it needed ?
+				atmel,external-irqs = <31>;
+                        };
+
+			mmc0: mmc@f0008000 { // HSMCI0
+				compatible = "atmel,hsmci";
+				reg = <0xf0008000 0x4000>;
+			//	interrupts = <2 IRQ_TYPE_LEVEL_HIGH 0>; // if enabled, boot process stop: message: Waiting for root device /dev/mmcblk0p2...
+                                dmas = <&dma0 1 AT91_DMA_CFG_PER_ID(0)>; 
+                                dma-names = "rxtx";
+				atmel,fifo-size = <64>;
+                                pinctrl-names = "default";
+                                clocks = <&mci0_clk>;
+                                clock-names = "mci_clk";
+                                #address-cells = <1>;
+                                #size-cells = <0>;
+				pinctrl-0 = <
+					&pinctrl_mmc0_slot0_clk_cmd_dat0
+					&pinctrl_mmc0_slot0_dat1_3>;
+				status = "okay";
+				slot@0 {
+					reg = <0>;
+					bus-width = <4>;
+				};
+			};
+
+			i2c0: i2c@f8010000 {
+				 compatible = "atmel,at91sam9x5-i2c";
+				 reg = <0xf8010000 0x4000>;
+                        //         interrupts = <3 IRQ_TYPE_LEVEL_HIGH 6>; // block if enabled
+                                 dmas = <&dma0 1 AT91_DMA_CFG_PER_ID(7)>,
+                                        <&dma0 1 AT91_DMA_CFG_PER_ID(8)>;
+                                 dma-names = "tx", "rx";
+				 atmel,fifo-size = <16>;
+                                 #address-cells = <1>;
+                                 #size-cells = <0>;
+                                 pinctrl-names = "default";
+                                 pinctrl-0 = <&pinctrl_i2c0>;
+                                 clocks = <&twi0_clk>;
+				 status = "okay";
+
+				// mcp			
+
+			};
+/*
+			// /dev/ttyS1 RS232 + rts + cts 
+			usart0: serial@f801c000 { // 38.7.1   USART Control Register
+				compatible = "atmel,at91sam9260-usart";
+				reg = <0xf801c000 0x4000>; // Figure 5-1. SAM9G25 Memory Mapping
+				clocks = <&usart0_clk>;
+		                clock-names = "usart";
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_usart0 &pinctrl_usart0_rts &pinctrl_usart0_cts>;
+				interrupts = <5 IRQ_TYPE_LEVEL_HIGH 4>; // 38.5.3 Interrupt Sources
+				atmel,use-dma-rx;
+			        atmel,use-dma-tx;
+				dmas =  <&dma0 1 AT91_DMA_CFG_PER_ID(3)>,    
+					<&dma0 1 (AT91_DMA_CFG_PER_ID(4) | AT91_DMA_CFG_FIFOCFG_ASAP)>;
+				dma-names = "tx", "rx"; 
+				atmel,fifo-size = <16>;
+				status = "okay";
+			};
+
+			// /dev/ttyS2 RS485
+			usart1: serial@f8020000 { // 38.7.1   USART Control Register
+				compatible = "atmel,at91sam9260-usart";
+		                reg = <0xf8020000 0x4000>;
+				clocks = <&usart1_clk>;
+                                clock-names = "usart";
+				pinctrl-0 = <&pinctrl_usart1>;
+				pinctrl-names = "default";
+				linux,rs485-enabled-at-boot-time;
+				rs485-rts-delay = <0 20>; // or <0 0> ??
+				interrupts = <6 IRQ_TYPE_LEVEL_HIGH 5>; // = <6 4 5> // 38.5.3 Interrupt Sources
+				dma-names = "tx", "rx";
+				atmel,use-dma-rx;
+		                atmel,use-dma-tx;
+				atmel,fifo-size = <16>;
+				dmas =  <&dma0 1 AT91_DMA_CFG_PER_ID(5)>,
+                                        <&dma0 1 (AT91_DMA_CFG_PER_ID(6) | AT91_DMA_CFG_FIFOCFG_ASAP)>;
+				status ="okay";			
+			};
+*/
+			macb0: ethernet@f802c000 {  // EMAC
+			//	reg = <0xf802c000 0x4000>; // Figure 5-1. SAM9G25 Memory Mapping
+				phy-mode = "rmii";
+				local-mac-address = [00 04 25 21 43 65]; // can be overwritten by bootloader
+				status = "okay";
+			};
+
+			// 
+			// System Controller Mapping
+			//
+			// note: for interrupt, Source 1 is Reserved for System Peripherals -> interrupts = <1 x x>
+
+			dbgu: serial@fffff200 { // 23.6.1 Debug Unit Control Register
+				// 23.5.4 DMA Support
+				//compatible = "atmel,at91sam9260-dbgu", "atmel,at91sam9260-usart";
+				compatible = "atmel,at91sam9260-usart";
+				reg = <0xfffff200 0x200>; // Figure 5-1. SAM9G25 Memory Mapping
+			//	interrupts = <1 IRQ_TYPE_LEVEL_HIGH 7>;
+                                pinctrl-names = "default";
+                                pinctrl-0 = <&pinctrl_dbgu>;
+			//	atmel,use-dma-rx;
+                                atmel,use-dma-tx;
+				atmel,fifo-size = <16>;
+				dmas = <&dma1 1 (AT91_DMA_CFG_PER_ID(8) | AT91_DMA_CFG_FIFOCFG_HALF )>; //,
+                        //                <&dma1 1 (AT91_DMA_CFG_PER_ID(9) | AT91_DMA_CFG_FIFOCFG_ASAP)>;
+                        //        dma-names = "tx", "rx";
+                                dma-names = "tx";
+                                clocks = <&mck>;
+                                clock-names = "usart";
+				status = "okay";
+			};
+
+			rtc@fffffeb0 {
+				compatible = "atmel,at91sam9x5-rtc";
+				reg = <0xfffffeb0 0x10>;
+				clocks = <&clk32k>;
+				// errata without fix:  Interrupt Mask Register cannot be used
+				//interrupts = <1 IRQ_TYPE_LEVEL_HIGH 7>;
+				status = "okay";
+			};
+		};
+
+		usb0: ohci@00600000 {
+			status = "okay";
+			num-ports = <3>; 
+		};
+
+		usb1: ehci@00700000 {
+			status = "okay";
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		aria_led {
+			label = "aria_led";
+			gpios = <&pioB 8 GPIO_ACTIVE_HIGH>; /* PB8 */ 
+			linux,default-trigger = "cpu0";
+		};
+
+                board_led {
+                        label = "board_led";
+                        gpios = <&pioA 12 GPIO_ACTIVE_HIGH>; // PA12 
+                        linux,default-trigger = "timer"; // blink
+			default-state = "on";
+                };
+
+                serial1_led {
+                        label = "serial1_led";
+                        gpios = <&pioA 4 GPIO_ACTIVE_HIGH>; // PA4 
+                        linux,default-trigger = "none";
+			default-state = "off";
+                };
+
+                serial2_led {
+                        label = "serial2_led";
+                        gpios = <&pioA 7 GPIO_ACTIVE_HIGH>; // PA7 
+                        linux,default-trigger = "none";
+			default-state = "off";
+                };
+
+
+	};
+
+	// ? what is the best way to set unused pins to 0 ? -> ?  http://free-electrons.com/kerneldoc/latest/devicetree/bindings/pinctrl/pinctrl-bindings.txt
+
+	gpio_keys {
+		compatible = "gpio-keys";
+
+		P5 {
+			label = "P5";
+			gpios = <&pioA 11 GPIO_ACTIVE_HIGH>;      // PA11  
+		//	interrupt-parent = <&pioA>; // is needed ?
+		//	interrupts = <31 IRQ_TYPE_EDGE_FALLING 0>; 
+			linux,code = <108>; // key_code == KEY_DOWN
+			gpio-key,wakeup;
+		};
+
+	};
+};
