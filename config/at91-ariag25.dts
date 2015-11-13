@@ -1,6 +1,7 @@
 /*
- * at91-aria.dts - Device Tree file for Acme Systems Aria G25
+ * at91-aria.dts - Device Tree file for Project2, based on Acme Systems Aria G25
  *
+ * Copyright (C) 2015 Giovanni Manzoni <commerciale@hardelettrosoft.com>
  * Copyright (C) 2015 Sergio Tanzilli <sergio@tanzilli.com>
  * Copyright (C) 2013 Douglas Gilbert <dgilbert@interlog.com>,
  *                    Robert Nelson <robertcnelson@gmail.com>
