@@ -2,6 +2,8 @@
 
 setup OS serial connection with 9600 8N1, Flow control Xon/Xoff
 
+Thanks to Acmesystems and http://stackoverflow.com/questions/12531289/serial-programming-rs485
+
 */
 
 #include "stdio.h"
@@ -19,9 +21,6 @@ setup OS serial connection with 9600 8N1, Flow control Xon/Xoff
 /* RS485 ioctls: */
 #define TIOCGRS485      0x542E
 #define TIOCSRS485      0x542F
-
-
-// http://stackoverflow.com/questions/12531289/serial-programming-rs485
 
 int main(void) {
 	char txBuffer[50];
@@ -74,9 +73,7 @@ int main(void) {
 	/* Flush Port, then applies attributes */
 	tcflush( fd, TCIFLUSH );
 
-//        tcsetattr(fd, TCSANOW, &tty_attributes);
 	if(tcsetattr(fd, TCSAFLUSH, &tty_attributes) != 0) return -3; //"Setting the new parameters failed";
-
 
 	/* Don't forget to read first the current state of the RS-485 options with ioctl.
             If You don't do this, You will destroy the rs485conf.delay_rts_last_char_tx
@@ -120,7 +117,6 @@ int main(void) {
 	//   TEST READING FROM RS485
         //***************************//
 	// ENABLE FOR TEST
-
 
 	printf("TEST READING FROM RS485\n\r");
 	for(;;){
